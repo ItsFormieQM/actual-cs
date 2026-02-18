@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+    <title>{{ "Edit Student" if student else "Add Student" }}</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            background: #f4f5f7;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #0D3B66;
+            margin-bottom: 20px;
+        }
+        form {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: bold;
+        }
+        input[type=text], input[type=number] {
+            width: 100%;
+            padding: 6px;
+            margin-top: 4px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .grades-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .grades-row label {
+            flex-basis: 100%;
+            margin-top: 0;
+        }
+        .grades-row input {
+            flex: 1;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #0D3B66;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #064273;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ "Edit Student" if student else "Add Student" }}</h1>
+    <form method="POST" id="studentForm">
+        <label>Name:</label>
+        <input type="text" name="name" required value="{{ student.name if student else '' }}">
+
+        <label>LRN (optional):</label>
+        <input type="text" name="lrn" value="{{ student.lrn if student else '' }}">
+
+        <label>Nickname (optional):</label>
+        <input type="text" name="nickname" value="{{ student.nickname if student else '' }}">
+
+        <h3>Grades per Subject (1.0–5.0, 4 Quarters)</h3>
+        {% for subj in subjects %}
+            {% set grade = student.grades | selectattr("subject","equalto",subj) | first if student else None %}
+            <div class="grades-row">
+                <label>{{ subj }}:</label>
+                <input type="number" name="{{ subj }}_q1" placeholder="Q1" min="1" max="5" step="0.01" value="{{ grade.q1 if grade else 5 }}">
+                <input type="number" name="{{ subj }}_q2" placeholder="Q2" min="1" max="5" step="0.01" value="{{ grade.q2 if grade else 5 }}">
+                <input type="number" name="{{ subj }}_q3" placeholder="Q3" min="1" max="5" step="0.01" value="{{ grade.q3 if grade else 5 }}">
+                <input type="number" name="{{ subj }}_q4" placeholder="Q4" min="1" max="5" step="0.01" value="{{ grade.q4 if grade else 5 }}">
+            </div>
+        {% endfor %}
+
+        <button type="submit">{{ "Save Changes" if student else "Add Student" }}</button>
+    </form>
+
+    <script>
+        const form = document.getElementById("studentForm");
+
+        form.addEventListener("submit", (e) => {
+            const inputs = form.querySelectorAll('input[type="number"]');
+            for (let input of inputs) {
+                let value = parseFloat(input.value);
+                
+                // Clamp value between 1 and 5
+                if (value < 1 || value > 5 || isNaN(value)) {
+                    alert("All grades must be between 1.0 and 5.0");
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Round to 2 decimals
+                input.value = value.toFixed(2);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Student Score Tracker</title>
+    <style>
+        body {
+            font-family: 'Georgia', serif;
+            background: #f4f5f7;
+            color: #333;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0D3B66;
+            margin-bottom: 10px;
+        }
+
+        .add-student {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #0D3B66;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .filter-form {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        select,
+        button {
+            padding: 6px 10px;
+            margin-left: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #0D3B66;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f0f4f8;
+        }
+
+        tr:hover {
+            background: #e2e8f0;
+        }
+
+        .delete-btn {
+            padding: 5px 10px;
+            background: #c0392b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .delete-btn:hover {
+            background: #8e2a1e;
+        }
+
+        .edit-btn {
+            padding: 5px 10px;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .edit-btn:hover {
+            background: #1c5980;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Grade Report</h1>
+
+    <a href="{{ url_for('add_student') }}" class="add-student">Add Student</a>
+
+    <form method="get" class="filter-form">
+        <label>Filter by Subject:</label>
+        <select name="subject">
+            <option value="">All</option>
+            {% for subj in subjects %}
+            <option value="{{ subj }}" {% if subj==selected_subject %}selected{% endif %}>{{ subj }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>LRN</th>
+            <th>Nickname</th>
+            {% if selected_subject %}
+            <th>{{ selected_subject }} Q1</th>
+            <th>{{ selected_subject }} Q2</th>
+            <th>{{ selected_subject }} Q3</th>
+            <th>{{ selected_subject }} Q4</th>
+            <th>Average</th>
+            <th>Status</th>
+            {% else %}
+            <th>Best Subject(s)</th>
+            <th>Best Score</th>
+            <th>Worst Subject(s)</th>
+            <th>Worst Score</th>
+            <th>Average</th>
+            <th>Status</th>
+            {% endif %}
+            <th>Action</th>
+        </tr>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.name }}</td>
+            <td>{{ student.lrn or "" }}</td>
+            <td>{{ student.nickname or "" }}</td>
+
+            {% if selected_subject %}
+            {% set g = grades_dict.get(student.id) %}
+            {% if g %}
+            <td>{{ "%.2f"|format(g.q1) }}</td>
+            <td>{{ "%.2f"|format(g.q2) }}</td>
+            <td>{{ "%.2f"|format(g.q3) }}</td>
+            <td>{{ "%.2f"|format(g.q4) }}</td>
+            <td>{{ "%.2f"|format(g.average()) }}</td>
+            <td>{{ grade_status(g.average()) }}</td>
+            {% else %}
+            <td colspan="6">No grade for this subject</td>
+            {% endif %}
+            {% else %}
+            {% set high, low, avg = compute_student_stats(student) %}
+            <td>{{ low.subjects | join(', ') }}</td>
+            <td>{{ "%.2f"|format(low.score) }}</td>
+            <td>{{ high.subjects | join(', ') }}</td>
+            <td>{{ "%.2f"|format(high.score) }}</td>
+            <td>{{ "%.2f"|format(avg) }}</td>
+            <td>{{ grade_status(avg) }}</td>
+            {% endif %}
+
+            <td>
+                <a href="{{ url_for('edit_student', student_id=student.id) }}" class="edit-btn">Edit</a>
+                <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}"
+                    style="display:inline;">
+                    <button type="submit" class="delete-btn"
+                        onclick="return confirm('Delete this student?');">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>
