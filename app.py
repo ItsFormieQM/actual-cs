@@ -12,7 +12,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# -------------------- MODELS --------------------
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -33,7 +32,6 @@ class Grade(db.Model):
     def average(self):
         return round((self.q1 + self.q2 + self.q3 + self.q4) / 4, 2)
 
-# -------------------- ANALYTICS --------------------
 def compute_student_stats(student):
     highest = {"subjects": [], "score": -1}
     lowest = {"subjects": [], "score": 101}
@@ -82,13 +80,11 @@ def compute_student_stats(student):
     total = 0
     count = 0
 
-    # Flag to check if any quarter has 5
     any_five = False
 
     for g in student.grades:
         quarters = [g.q1, g.q2, g.q3, g.q4]
 
-        # Check if any quarter is 5
         if 5.0 in quarters:
             any_five = True
 
@@ -96,50 +92,38 @@ def compute_student_stats(student):
         total += avg
         count += 1
 
-        # Highest
         if avg > highest["score"]:
             highest["score"] = avg
             highest["subjects"] = [g.subject]
         elif avg == highest["score"]:
             highest["subjects"].append(g.subject)
 
-        # Lowest
         if avg < lowest["score"]:
             lowest["score"] = avg
             lowest["subjects"] = [g.subject]
         elif avg == lowest["score"]:
             lowest["subjects"].append(g.subject)
 
-    # Calculate average
     average = round(total / count, 2) if count else 0
 
-    # Apply the special rule: if any quarter is 5, overall average = 5
     if any_five:
         average = 5.0
 
     return highest, lowest, average
 
-# -------------------- ROUTES --------------------
-
-
 @app.route("/download_source")
 def download_source():
     project_folder = os.path.abspath(os.path.dirname(__file__))
 
-    # Create an in-memory bytes buffer
     memory_file = io.BytesIO()
 
     with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # Walk through project folder
         for foldername, subfolders, filenames in os.walk(project_folder):
             for filename in filenames:
-                # Skip the temporary ZIP itself if exists
                 if filename.endswith("student_tracker_sourceCode.zip"):
                     continue
 
-                # Full path
                 file_path = os.path.join(foldername, filename)
-                # Archive name relative to project folder
                 arcname = os.path.relpath(file_path, project_folder)
                 zipf.write(file_path, arcname)
 
@@ -158,15 +142,12 @@ def index():
     selected_subject = request.args.get("subject", "")
 
     if selected_subject:
-        # Get all grades for that subject
         grades = Grade.query.filter_by(subject=selected_subject).all()
-        # Extract unique students who have this grade
         students = sorted({g.student for g in grades}, key=lambda s: s.name)
-        # Pass the grades separately so we can display only that subject
         grades_dict = {g.student.id: g for g in grades}
     else:
         students = Student.query.all()
-        grades_dict = {}  # empty when showing all subjects
+        grades_dict = {} 
 
     return render_template(
         "index.html",
@@ -201,7 +182,6 @@ def add_student():
                 q4 = float(request.form.get(f"{subj}_q4", 5))
             except ValueError:
                 q1 = q2 = q3 = q4 = 5
-            # Clamp between 1-5 and 2 decimals
             q1 = round(min(max(q1, 1.0), 5.0), 2)
             q2 = round(min(max(q2, 1.0), 5.0), 2)
             q3 = round(min(max(q3, 1.0), 5.0), 2)
@@ -234,7 +214,6 @@ def edit_student(student_id):
         student.nickname = request.form.get("nickname")
         db.session.commit()
 
-        # Update grades
         for subj in subjects:
             grade = next((g for g in student.grades if g.subject == subj), None)
             if grade:
@@ -257,8 +236,7 @@ def delete_student(student_id):
     db.session.commit()
     return redirect(url_for("index"))
 
-# -------------------- MAIN --------------------
-if __name__ == "__main__":
+if __name__ == "__main__": # i have to use this for deployement to render cuz why tf not lol?
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
