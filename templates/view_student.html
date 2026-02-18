@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+    <title>View Student Grades</title>
+    <style>
+        body { font-family: 'Georgia', serif; background: #f4f5f7; color: #333; padding: 20px; }
+        h1 { text-align: center; color: #0D3B66; margin-bottom: 10px; }
+        .grades-row { margin-bottom: 10px; }
+        input { width: 60px; padding: 4px; text-align: center; margin-right: 5px; }
+        .back-btn {
+            display: inline-block; padding: 8px 12px; background: #2980b9; color: white;
+            text-decoration: none; border-radius: 5px; margin-top: 10px;
+        }
+        footer { text-align: center; margin-top: 30px; font-size: 0.8em; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Grades for {{ student.name }}</h1>
+
+    {% for subj in subjects %}
+        {% set grade = student.grades | selectattr("subject","equalto",subj) | first %}
+        <div class="grades-row">
+            <label>{{ subj }}:</label>
+            <input type="number" value="{{ grade.q1 if grade else '-' }}" disabled>
+            <input type="number" value="{{ grade.q2 if grade else '-' }}" disabled>
+            <input type="number" value="{{ grade.q3 if grade else '-' }}" disabled>
+            <input type="number" value="{{ grade.q4 if grade else '-' }}" disabled>
+            <span>Average: {{ "%.2f"|format(grade.average()) if grade else '-' }}</span>
+        </div>
+    {% endfor %}
+
+    <a href="{{ url_for('index') }}" class="back-btn">Back</a>
+
+    <footer>By: ItsFormieQM</footer>
+</body>
+</html>

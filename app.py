@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask import send_file
+import os
+import shutil
+import io
+import zipfile
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
@@ -67,11 +72,86 @@ def grade_status(gwa):
     elif 2.5 < gwa <= 2.75:
         return "Probationary"
     elif 2.75 < gwa <= 3.0:
-        return "Fail"
+        return "Student removed from the system"
     else:
-        return "Red"
+        return "Student did not take the subject"
+    
+def compute_student_stats(student):
+    highest = {"subjects": [], "score": -1}
+    lowest = {"subjects": [], "score": 101}
+    total = 0
+    count = 0
+
+    # Flag to check if any quarter has 5
+    any_five = False
+
+    for g in student.grades:
+        quarters = [g.q1, g.q2, g.q3, g.q4]
+
+        # Check if any quarter is 5
+        if 5.0 in quarters:
+            any_five = True
+
+        avg = round(sum(quarters) / 4, 2)
+        total += avg
+        count += 1
+
+        # Highest
+        if avg > highest["score"]:
+            highest["score"] = avg
+            highest["subjects"] = [g.subject]
+        elif avg == highest["score"]:
+            highest["subjects"].append(g.subject)
+
+        # Lowest
+        if avg < lowest["score"]:
+            lowest["score"] = avg
+            lowest["subjects"] = [g.subject]
+        elif avg == lowest["score"]:
+            lowest["subjects"].append(g.subject)
+
+    # Calculate average
+    average = round(total / count, 2) if count else 0
+
+    # Apply the special rule: if any quarter is 5, overall average = 5
+    if any_five:
+        average = 5.0
+
+    return highest, lowest, average
 
 # -------------------- ROUTES --------------------
+
+
+@app.route("/download_source")
+def download_source():
+    project_folder = os.path.abspath(os.path.dirname(__file__))
+
+    # Create an in-memory bytes buffer
+    memory_file = io.BytesIO()
+
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # Walk through project folder
+        for foldername, subfolders, filenames in os.walk(project_folder):
+            for filename in filenames:
+                # Skip the temporary ZIP itself if exists
+                if filename.endswith("student_tracker_sourceCode.zip"):
+                    continue
+
+                # Full path
+                file_path = os.path.join(foldername, filename)
+                # Archive name relative to project folder
+                arcname = os.path.relpath(file_path, project_folder)
+                zipf.write(file_path, arcname)
+
+    memory_file.seek(0)
+
+    return send_file(
+        memory_file,
+        as_attachment=True,
+        download_name="student_tracker_sourceCode.zip",
+        mimetype='application/zip'
+    )
+
 @app.route("/")
 def index():
     subjects = sorted({g.subject for g in Grade.query.all()})
@@ -133,6 +213,14 @@ def add_student():
         return redirect(url_for("index"))
 
     return render_template("add_student.html", subjects=subjects)
+
+@app.route("/view/<int:student_id>")
+def view_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    subjects = ["Math 2", "Math 3", "ES", "SocSci", "English", "Filipino",
+                "PE", "AdTech", "Physics", "Health", "Biology", "CS2"]
+    return render_template("view_student.html", student=student, subjects=subjects)
+
 
 @app.route("/edit/<int:student_id>", methods=["GET", "POST"])
 def edit_student(student_id):
