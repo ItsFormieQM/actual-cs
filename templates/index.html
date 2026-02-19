@@ -105,6 +105,11 @@
         style="display:inline-block; padding:8px 12px; background:#27ae60; color:white; border-radius:5px; text-decoration:none; margin-bottom:10px;">
         Download Full Source Code
     </a>
+    <h2>Import Student</h2>
+    <form action="{{ url_for('import_student') }}" method="POST" enctype="multipart/form-data">
+        <input type="file" name="student_file" accept=".json" required>
+        <button type="submit">Import</button>
+    </form>
 
     <form method="get" class="filter-form">
         <label>Filter by Subject:</label>
@@ -169,16 +174,17 @@
 
             <td>
                 <a href="{{ url_for('view_student', student_id=student.id) }}" class="edit-btn"
-                    style="background:#27ae60;">
-                    View
-                </a>
+                    style="background:#27ae60;">View</a>
                 <a href="{{ url_for('edit_student', student_id=student.id) }}" class="edit-btn">Edit</a>
+                <a href="{{ url_for('export_student', student_id=student.id) }}" class="edit-btn"
+                    style="background:#16a085;">Export</a>
                 <form method="POST" action="{{ url_for('delete_student', student_id=student.id) }}"
                     style="display:inline;">
                     <button type="submit" class="delete-btn"
                         onclick="return confirm('Delete this student?');">Delete</button>
                 </form>
             </td>
+
         </tr>
         {% endfor %}
     </table>

@@ -1,36 +1,129 @@
 <!doctype html>
 <html>
+
 <head>
     <title>View Student Grades</title>
     <style>
-        body { font-family: 'Georgia', serif; background: #f4f5f7; color: #333; padding: 20px; }
-        h1 { text-align: center; color: #0D3B66; margin-bottom: 10px; }
-        .grades-row { margin-bottom: 10px; }
-        input { width: 60px; padding: 4px; text-align: center; margin-right: 5px; }
-        .back-btn {
-            display: inline-block; padding: 8px 12px; background: #2980b9; color: white;
-            text-decoration: none; border-radius: 5px; margin-top: 10px;
+        body {
+            font-family: 'Georgia', serif;
+            background: #f4f5f7;
+            color: #333;
+            padding: 20px;
         }
-        footer { text-align: center; margin-top: 30px; font-size: 0.8em; color: #555; }
+
+        h1 {
+            text-align: center;
+            color: #0D3B66;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #0D3B66;
+            color: white;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 8px 12px;
+            background: #2980b9;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8em;
+            color: #555;
+        }
     </style>
 </head>
+
 <body>
     <h1>Grades for {{ student.name }}</h1>
 
-    {% for subj in subjects %}
-        {% set grade = student.grades | selectattr("subject","equalto",subj) | first %}
-        <div class="grades-row">
-            <label>{{ subj }}:</label>
-            <input type="number" value="{{ grade.q1 if grade else '-' }}" disabled>
-            <input type="number" value="{{ grade.q2 if grade else '-' }}" disabled>
-            <input type="number" value="{{ grade.q3 if grade else '-' }}" disabled>
-            <input type="number" value="{{ grade.q4 if grade else '-' }}" disabled>
-            <span>Average: {{ "%.2f"|format(grade.average()) if grade else '-' }}</span>
-        </div>
-    {% endfor %}
+    {% set high, low, avg = compute_student_stats(student) %}
+    <p>GWA: {{ avg }} - {{ grade_status(avg) }}</p>
+
+    <!-- Grade Legend -->
+    <h2>Grade Legend</h2>
+    <table border="1" cellpadding="5" style="margin-bottom:20px;">
+        <tr>
+            <th>GWA</th>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>Highest DL</td>
+        </tr>
+        <tr>
+            <td>1 - 1.5</td>
+            <td>DL</td>
+        </tr>
+        <tr>
+            <td>1.5 - 2.5</td>
+            <td>Normal</td>
+        </tr>
+        <tr>
+            <td>2.5</td>
+            <td>Substandard</td>
+        </tr>
+        <tr>
+            <td>2.75 - 5</td>
+            <td>Probationary</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>Removed from the system</td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <th>Subject</th>
+            <th>Q1</th>
+            <th>Q2</th>
+            <th>Q3</th>
+            <th>Q4</th>
+            <th>Average</th>
+        </tr>
+        {% for subj in subjects %}
+        {% set grades = student.grades.get(subj, [0,0,0,0]) %}
+        <tr>
+            <td>{{ subj }}</td>
+            <td>{{ grades[0] if grades[0] else '-' }}</td>
+            <td>{{ grades[1] if grades[1] else '-' }}</td>
+            <td>{{ grades[2] if grades[2] else '-' }}</td>
+            <td>{{ grades[3] if grades[3] else '-' }}</td>
+            <td>
+                {% if grades %}
+                {{ (grades[0]+grades[1]+grades[2]+grades[3])/4 | round(2) }}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
 
     <a href="{{ url_for('index') }}" class="back-btn">Back</a>
 
     <footer>By: ItsFormieQM</footer>
 </body>
+
 </html>
